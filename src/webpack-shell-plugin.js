@@ -6,6 +6,7 @@ const defaultOptions = {
   onBuildStart: [],
   onBuildEnd: [],
   onBuildExit: [],
+  onBuildError: [],
   dev: true,
   verbose: false,
   safe: false
@@ -56,6 +57,9 @@ export default class WebpackShellPlugin {
     if (typeof options.onBuildExit === 'string') {
       options.onBuildExit = options.onBuildExit.split('&&');
     }
+    if (typeof options.onBuildError === 'string') {
+      options.onBuildError = options.onBuildError.split('&&');
+    }
     return options;
   }
 
@@ -99,7 +103,12 @@ export default class WebpackShellPlugin {
       callback();
     });
 
-    compiler.plugin('done', () => {
+    compiler.plugin('done', (stats) => {
+      if (stats.hasErrors() && this.options.onBuildError.length) {
+        for (let i = 0; i < this.options.onBuildError.length; i++) {
+          this.handleScript(this.options.onBuildError[i]);
+        }
+      }
       if (this.options.onBuildExit.length) {
         console.log('Executing additional scripts before exit');
         for (let i = 0; i < this.options.onBuildExit.length; i++) {
